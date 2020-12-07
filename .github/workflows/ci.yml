@@ -63,5 +63,16 @@ jobs:
         uses: actions/checkout@v2
       - name: Install tilesegy
         run: python setup.py install
-      - name: Test tilesegy
-        run: python setup.py test --addopts '-v --cov tilesegy'
+      - name: Test tilesegy (with coverage)
+        run: |
+          python setup.py test --addopts '
+            --cov=tilesegy
+            --cov-report=term-missing
+            --cov-report=html:coverage
+            --cov-report=xml:coverage/coverage.xml
+          '
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: coverage

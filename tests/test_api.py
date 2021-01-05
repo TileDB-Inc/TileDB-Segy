@@ -51,9 +51,15 @@ def _stringify_keys_iter(s: Iterable[Mapping[int, int]]) -> List[Mapping[str, in
     return list(map(stringify_keys, s))
 
 
-def iter_slices(i: int, j: int) -> Iterable[slice]:
-    assert i < j
-    return it.starmap(slice, it.product((None, i), (None, j), (None, 2)))
+def iter_slices(i: int, j: int, negative_steps: bool = True) -> Iterable[slice]:
+    assert 0 <= i < j
+    slice_args = it.product((None, i), (None, j), (None, 1))
+    if negative_steps:
+        slice_args = it.chain(
+            slice_args,
+            it.product((None, j - 1), (None, i - 1) if i > 0 else (None,), (-1, -2)),
+        )
+    return it.starmap(slice, slice_args)
 
 
 class TestSegy:
@@ -113,7 +119,7 @@ class TestSegy:
         for sl in iter_slices(x, y):
             assert_equal_arrays(t.trace[i, sl], s.trace[i, sl])
 
-        for sl1 in iter_slices(i, j):
+        for sl1 in iter_slices(i, j, negative_steps=False):
             try:
                 # slices traces, all samples
                 assert_equal_arrays(t.trace[sl1], collect(s.trace[sl1]))
@@ -153,7 +159,7 @@ class TestSegy:
         i = np.random.randint(0, s.tracecount // 2)
         j = np.random.randint(i + 1, s.tracecount)
         assert_equal_arrays(t_attrs[i], s_attrs[i])
-        for sl in iter_slices(i, j):
+        for sl in iter_slices(i, j, negative_steps=False):
             try:
                 assert_equal_arrays(t_attrs[sl], s_attrs[sl])
             except MultiSliceError as ex:
